@@ -825,6 +825,35 @@ class CIManager(object):
 
             return data.get('v')
 
+    def baseline(self, ci_id, before_date):
+        ci_list = self.get_cis_by_ids([ci_id])
+        if not ci_list:
+            return dict()
+
+        ci = ci_list[0]
+
+        changed = AttributeHistoryManger.get_records_for_attributes(
+            before_date, None, None, 1, 100000, None, None, ci_id=ci_id)[1]
+
+        for records in changed:
+            for change in records[1]:
+                ci[change['attr_name']] = change['old']
+
+        return ci
+
+    def rollback(self, ci_id, before_date):
+        baseline_ci = self.baseline(ci_id, before_date)
+
+        baseline_ci.pop('_id', None)
+        baseline_ci.pop('_type', None)
+        baseline_ci.pop('unique', None)
+        baseline_ci.pop('unique_alias', None)
+        baseline_ci.pop('ci_type_alias', None)
+
+        self.update(ci_id, **baseline_ci)
+
+        return baseline_ci
+
 
 class CIRelationManager(object):
     """

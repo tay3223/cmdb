@@ -16,6 +16,7 @@ from api.lib.cmdb.const import RetKey
 from api.lib.cmdb.perms import has_perm_for_ci
 from api.lib.cmdb.search import SearchError
 from api.lib.cmdb.search.ci import search
+from api.lib.decorator import args_required
 from api.lib.perm.acl.acl import has_perm_from_args
 from api.lib.utils import get_page
 from api.lib.utils import get_page_size
@@ -254,3 +255,24 @@ class CIPasswordView(APIView):
 
     def post(self, ci_id, attr_id):
         return self.get(ci_id, attr_id)
+
+
+class CIBaselineView(APIView):
+    url_prefix = ("/ci/<int:ci_id>/baseline", "/ci/<int:ci_id>/baseline/rollback")
+
+    @args_required("before_date")
+    def get(self, ci_id):
+        before_date = request.values.get('before_date')
+        ci = CIManager().baseline(ci_id, before_date)
+
+        return self.jsonify(**ci)
+
+    @args_required("before_date")
+    def post(self, ci_id):
+        if 'rollback' in request.url:
+            before_date = request.values.get('before_date')
+            ci = CIManager().rollback(ci_id, before_date)
+
+            return self.jsonify(**ci)
+
+        return self.get(ci_id)
